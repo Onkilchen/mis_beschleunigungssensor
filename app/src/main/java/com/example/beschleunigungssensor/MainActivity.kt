@@ -176,7 +176,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     }
 
     fun saveAsCsv() {
-        var fileName : String = SimpleDateFormat("YYYY-MM-DD-HH-SS'-SensorData.csv'").format(Date())
+        var fileName : String = SimpleDateFormat("YYYY-MM-dd-HH-mm-ss'-SensorData.csv'").format(Date())
         var file = File(context?.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), fileName)
 
         var fileOutPutStream : FileOutputStream
