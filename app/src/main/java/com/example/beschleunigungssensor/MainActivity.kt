@@ -143,10 +143,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             werteListe?.add("" + beschleunigungsDaten[0] + ";" + beschleunigungsDaten[1] + ";" + beschleunigungsDaten[2] + ";" + gesamtWert + "\n")
         }
 
-        xValueTextView?.setText("" + beschleunigungsDaten[0])
-        yValueTextView?.setText("" + beschleunigungsDaten[1])
-        zValueTextView?.setText("" + beschleunigungsDaten[2])
-        gesamtWertTextView?.setText("" + gesamtWert)
+        xValueTextView?.setText("%+.4f".format(beschleunigungsDaten[0]))
+        yValueTextView?.setText("%+.4f".format(beschleunigungsDaten[1]))
+        zValueTextView?.setText("%+.4f".format(beschleunigungsDaten[2]))
+        gesamtWertTextView?.setText("%+.4f".format(gesamtWert))
 
         if (beschleunigungsDaten[0] >= 0) {
             progressBarPosX!!.progress = (beschleunigungsDaten[0] * 100 / 15).toInt()
