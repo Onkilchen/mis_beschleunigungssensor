@@ -220,18 +220,32 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="30dp"
             android:gravity="center_horizontal|center_vertical"
             android:orientation="horizontal">
 
             <Button
-                android:id="@+id/startButton"
+                android:id="@+id/accelerate"
                 style="@android:style/Widget.Holo.Button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
                 android:backgroundTint="?attr/colorPrimary"
-                android:text="Messung starten"
+                android:minWidth="150dp"
+                android:text="Losfahren"
+                android:textColor="#FFEB3B" />
+
+            <Space
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="50dp" />
+
+            <Button
+                android:id="@+id/decelerate"
+                style="@android:style/Widget.Holo.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:backgroundTint="?attr/colorPrimary"
+                android:minWidth="150dp"
+                android:text="Anhalten"
                 android:textColor="#FFEB3B" />
         </LinearLayout>
 

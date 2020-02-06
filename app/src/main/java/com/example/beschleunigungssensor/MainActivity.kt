@@ -47,6 +47,11 @@ class MainActivity : AppCompatActivity() {
     private var druckSchnueffeler : DruckSchnueffeler? = null
     private var buffer : String? = null
 
+    private val buttons = arrayOf(R.id.accelerate, R.id.decelerate)
+
+    private var mode : String? = null
+
+
     var pressureValueTextView : TextView? = null
     var xValueTextView : TextView? = null
     var yValueTextView : TextView? = null
@@ -70,6 +75,33 @@ class MainActivity : AppCompatActivity() {
 
     // Liste zum speichern der Werte
     val werteListe : LinkedList<String> = LinkedList()
+
+    class Timer(activity: MainActivity, id: Int, mode : String) : CountDownTimer(10000, 1000) {
+        val activity = activity
+        val id = id
+        val mode = mode
+        var orig : String? = null
+        override fun onTick(millisUntilFinished: Long) {
+            val button = (activity.findViewById<Button>(id))
+
+            if (orig == null) {
+                orig = button.text.toString()
+            }
+
+            val seconds = (millisUntilFinished / 1000).toInt().toString()
+
+            button.setText("...$seconds...")
+            activity.startCapture(mode)
+        }
+
+        override fun onFinish() {
+            activity.stopCapture()
+            val button = (activity.findViewById<Button>(id))
+
+            button.setText(orig)
+            orig = null
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -99,23 +131,36 @@ class MainActivity : AppCompatActivity() {
         // Gesamtwertbereich
         gesamtWertTextView = findViewById(R.id.gesamtWertTextView)
 
-        (findViewById<Button>(R.id.startButton)).setOnClickListener {
-            Log.d("OnClick", "starting OnClickListener")
-            object : CountDownTimer(10000, 1000) {
-                override fun onTick(millisUntilFinished: Long) {
-                    Log.d("countdown", "tick-tock")
-                    werteAufnehmen = true
-                }
+        (findViewById<Button>(R.id.accelerate)).setOnClickListener {
+            Timer(this, R.id.accelerate, "+++").start()
+        }
 
-                override fun onFinish() {
-                    werteAufnehmen = false
-                    saveAsCsv()
-                    Log.d("filesaver", "file saved")
-                    Toast.makeText(context, "Werte gespeichert", Toast.LENGTH_LONG).show()
-                }
-            }.start()
+        (findViewById<Button>(R.id.decelerate)).setOnClickListener {
+            Timer(this, R.id.decelerate, "---").start()
         }
     }
+
+    fun startCapture(m: String) {
+        werteAufnehmen = true
+        mode = m
+
+        for (id in buttons) {
+            findViewById<Button>(id).isEnabled = false
+        }
+    }
+
+    fun stopCapture() {
+        werteAufnehmen = false
+        mode = null
+
+        saveAsCsv()
+        Toast.makeText(context, "Werte gespeichert", Toast.LENGTH_LONG).show()
+        for (id in buttons) {
+            findViewById<Button>(id).isEnabled = true
+        }
+
+    }
+
 
     // start the sensor again when re-entering the app
     override fun onResume() {
@@ -197,7 +242,7 @@ class MainActivity : AppCompatActivity() {
 
         }
 
-        buffer = "$x;$y;$z;$t"
+        buffer = "$mode;$x;$y;$z;$t"
     }
 
     fun updatePressure(p: Float) {
@@ -220,7 +265,7 @@ class MainActivity : AppCompatActivity() {
 
         try {
             fileOutPutStream = FileOutputStream(file)
-            fileOutPutStream.write(("x;y;z;t;p\n").toByteArray())
+            fileOutPutStream.write(("mode;x;y;z;t;p\n").toByteArray())
 
             val s = werteListe!!.size
 
