@@ -55,7 +55,6 @@ class MainActivity : AppCompatActivity() {
 
 
     var sensorManager: SensorManager? = null
-    var sensor: Sensor? = null
     var context : Context? = null
 
     var progressBarPosX : ProgressBar? = null
@@ -70,7 +69,7 @@ class MainActivity : AppCompatActivity() {
     var werteAufnehmen : Boolean = false
 
     // Liste zum speichern der Werte
-    var werteListe : LinkedList<String>? = null
+    val werteListe : LinkedList<String> = LinkedList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,11 +77,7 @@ class MainActivity : AppCompatActivity() {
 
         // get instance of default acceleration sensor
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        sensor = sensorManager!!.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         context = applicationContext
-
-        werteListe = LinkedList()
-
 
         // fill textviews
         pressureValueTextView = findViewById(R.id.pressureValueTextView)
@@ -108,10 +103,8 @@ class MainActivity : AppCompatActivity() {
             Log.d("OnClick", "starting OnClickListener")
             object : CountDownTimer(10000, 1000) {
                 override fun onTick(millisUntilFinished: Long) {
-                    Log.d("countdown", "start countdown")
-                    if (!werteAufnehmen) {
-                        werteAufnehmen = true
-                    }
+                    Log.d("countdown", "tick-tock")
+                    werteAufnehmen = true
                 }
 
                 override fun onFinish() {
@@ -212,20 +205,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun saveAsCsv() {
-        var fileName : String = SimpleDateFormat("YYYY-MM-dd-HH-mm-ss'-SensorData.csv'").format(Date())
-        var file = File(context?.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), fileName)
+        val fileName : String = SimpleDateFormat("YYYY-MM-dd-HH-mm-ss'-SensorData.csv'").format(Date())
+        Log.d("saveAsCsv", fileName)
 
+        val file = File(context?.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), fileName)
         var fileOutPutStream : FileOutputStream
 
         try {
             fileOutPutStream = FileOutputStream(file)
             fileOutPutStream.write(("x;y;z;t;p\n").toByteArray())
-            Log.d("directory", "" + Environment.DIRECTORY_DOWNLOADS)
 
-            for (i in 0 until werteListe!!.size step 1) {
+            val s = werteListe!!.size
+
+            for (i in 0 until s step 1) {
                 fileOutPutStream.write(werteListe!![i].toByteArray())
             }
-            Log.d("savecsv", "I am here")
+            Log.d("saveAsCsv", "wrote $s rows")
             werteListe!!.clear()
             fileOutPutStream.close()
         } catch (e: IOException) {
