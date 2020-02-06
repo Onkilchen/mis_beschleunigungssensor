@@ -26,21 +26,28 @@ class MainActivity : AppCompatActivity() {
     class AchselSchnueffeler(activity: MainActivity) : SensorEventListener {
         val activity = activity
         override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
-        override fun onSensorChanged(event: SensorEvent?) {
-            var accelData = FloatArray(3)
-
-            System.arraycopy(event!!.values, 0, accelData, 0, 3)
-
-            var gesamtWert: Float = sqrt((accelData[0] * accelData[0] + accelData[1] * accelData[1] + accelData[2] * accelData[2]).toDouble())
-                .toFloat()
-
-            activity.updateAccel(accelData[0], accelData[1], accelData[2], gesamtWert)
-
+        override fun onSensorChanged(event: SensorEvent) {
+            val xyz = event.values
+            val t = sqrt((xyz[0] * xyz[0] + xyz[1] * xyz[1] + xyz[2] * xyz[2]).toDouble()).toFloat()
+            activity.updateAccel(xyz[0], xyz[1], xyz[2], t)
         }
     }
 
-    var achselSchnueffeler : AchselSchnueffeler? = null
+    private var achselSchnueffeler : AchselSchnueffeler? = null
 
+    class DruckSchnueffeler(activity: MainActivity) : SensorEventListener {
+        val activity = activity
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+        override fun onSensorChanged(event: SensorEvent) {
+            val millibarsOfPressure = event.values[0]
+            activity.updatePressure(millibarsOfPressure)
+        }
+    }
+
+    private var druckSchnueffeler : DruckSchnueffeler? = null
+    private var buffer : String? = null
+
+    var pressureValueTextView : TextView? = null
     var xValueTextView : TextView? = null
     var yValueTextView : TextView? = null
     var zValueTextView : TextView? = null
@@ -76,7 +83,9 @@ class MainActivity : AppCompatActivity() {
 
         werteListe = LinkedList()
 
+
         // fill textviews
+        pressureValueTextView = findViewById(R.id.pressureValueTextView)
         xValueTextView = findViewById(R.id.xValueTextView)
         yValueTextView = findViewById(R.id.yValueTextView)
         zValueTextView = findViewById(R.id.zValueTextView)
@@ -118,12 +127,23 @@ class MainActivity : AppCompatActivity() {
     // start the sensor again when re-entering the app
     override fun onResume() {
         super.onResume()
+
         if (achselSchnueffeler == null) {
             achselSchnueffeler = AchselSchnueffeler(this)
         }
         sensorManager?.registerListener(
             achselSchnueffeler,
             sensorManager!!.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION),
+            SensorManager.SENSOR_DELAY_NORMAL
+        )
+
+        if (druckSchnueffeler == null) {
+            druckSchnueffeler = DruckSchnueffeler(this)
+        }
+
+        sensorManager?.registerListener(
+            druckSchnueffeler,
+            sensorManager!!.getDefaultSensor(Sensor.TYPE_PRESSURE),
             SensorManager.SENSOR_DELAY_NORMAL
         )
     }
@@ -133,15 +153,14 @@ class MainActivity : AppCompatActivity() {
         super.onPause()
         if (achselSchnueffeler != null) {
             sensorManager?.unregisterListener(achselSchnueffeler)
-            achselSchnueffeler = null
+        }
+
+        if (druckSchnueffeler != null) {
+            sensorManager?.unregisterListener(druckSchnueffeler)
         }
     }
 
     fun updateAccel(x: Float, y: Float, z: Float, t: Float) {
-        if (werteAufnehmen) {
-            werteListe?.add("$x;$y;$z;$t\n")
-        }
-
         xValueTextView?.setText("%+.4f".format(x))
         yValueTextView?.setText("%+.4f".format(y))
         zValueTextView?.setText("%+.4f".format(z))
@@ -177,6 +196,19 @@ class MainActivity : AppCompatActivity() {
             progressBarPosGesamt!!.progress = 0
 
         }
+
+        buffer = "$x;$y;$z;$t"
+    }
+
+    fun updatePressure(p: Float) {
+        if (werteAufnehmen) {
+            if (buffer != null) {
+                werteListe?.add("$buffer;$p\n")
+                buffer = null
+            }
+        }
+
+        pressureValueTextView?.setText("%+.4f".format(p))
     }
 
     fun saveAsCsv() {
@@ -187,7 +219,7 @@ class MainActivity : AppCompatActivity() {
 
         try {
             fileOutPutStream = FileOutputStream(file)
-            fileOutPutStream.write(("x;y;z;t\n").toByteArray())
+            fileOutPutStream.write(("x;y;z;t;p\n").toByteArray())
             Log.d("directory", "" + Environment.DIRECTORY_DOWNLOADS)
 
             for (i in 0 until werteListe!!.size step 1) {
