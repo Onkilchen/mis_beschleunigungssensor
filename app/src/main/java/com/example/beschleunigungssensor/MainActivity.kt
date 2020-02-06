@@ -124,21 +124,28 @@ class MainActivity : AppCompatActivity() {
         if (achselSchnueffeler == null) {
             achselSchnueffeler = AchselSchnueffeler(this)
         }
-        sensorManager?.registerListener(
-            achselSchnueffeler,
-            sensorManager!!.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION),
-            SensorManager.SENSOR_DELAY_NORMAL
-        )
+
+        val achselSensor = sensorManager!!.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION)
+        if (achselSensor != null) {
+            sensorManager?.registerListener(
+                achselSchnueffeler,
+                achselSensor,
+                SensorManager.SENSOR_DELAY_NORMAL
+            )
+        }
 
         if (druckSchnueffeler == null) {
             druckSchnueffeler = DruckSchnueffeler(this)
         }
 
-        sensorManager?.registerListener(
-            druckSchnueffeler,
-            sensorManager!!.getDefaultSensor(Sensor.TYPE_PRESSURE),
-            SensorManager.SENSOR_DELAY_NORMAL
-        )
+        val druckSensor = sensorManager!!.getDefaultSensor(Sensor.TYPE_PRESSURE)
+        if (druckSensor != null) {
+            sensorManager?.registerListener(
+                druckSchnueffeler,
+                druckSensor,
+                SensorManager.SENSOR_DELAY_NORMAL
+            )
+        }
     }
 
     // to make sure that the sensor stops after closing the app
