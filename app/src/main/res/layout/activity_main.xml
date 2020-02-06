@@ -152,13 +152,9 @@
                     android:gravity="right"
                     android:minEms="6" />
 
-                <ProgressBar
-                    android:id="@+id/progressBarPosGesamtNegativ"
-                    style="@android:style/Widget.ProgressBar.Horizontal"
+                <Space
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="0.3"
-                    android:rotation="180" />
+                    android:layout_height="wrap_content" />
 
                 <ProgressBar
                     android:id="@+id/progressBarPosGesamt"

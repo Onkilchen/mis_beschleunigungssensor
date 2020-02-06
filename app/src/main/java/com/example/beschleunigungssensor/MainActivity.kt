@@ -10,7 +10,6 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Environment
 import android.util.Log
-import android.view.View
 import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -22,7 +21,25 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.sqrt
 
-class MainActivity : AppCompatActivity(), SensorEventListener {
+class MainActivity : AppCompatActivity() {
+
+    class AchselSchnueffeler(activity: MainActivity) : SensorEventListener {
+        val activity = activity
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+        override fun onSensorChanged(event: SensorEvent?) {
+            var accelData = FloatArray(3)
+
+            System.arraycopy(event!!.values, 0, accelData, 0, 3)
+
+            var gesamtWert: Float = sqrt((accelData[0] * accelData[0] + accelData[1] * accelData[1] + accelData[2] * accelData[2]).toDouble())
+                .toFloat()
+
+            activity.updateAccel(accelData[0], accelData[1], accelData[2], gesamtWert)
+
+        }
+    }
+
+    var achselSchnueffeler : AchselSchnueffeler? = null
 
     var xValueTextView : TextView? = null
     var yValueTextView : TextView? = null
@@ -34,10 +51,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     var sensor: Sensor? = null
     var context : Context? = null
 
-    lateinit var startButton : Button
-
-    var beschleunigungsDaten : FloatArray = FloatArray(3)
-
     var progressBarPosX : ProgressBar? = null
     var progressBarPosY : ProgressBar? = null
     var progressBarPosZ : ProgressBar? = null
@@ -46,14 +59,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     var progressBarPosXNegative : ProgressBar? = null
     var progressBarPosYNegative : ProgressBar? = null
     var progressBarPosZNegative : ProgressBar? = null
-    var progressBarPosGesamtNegativ : ProgressBar? = null
 
-    var dauer : Int = 0
     var werteAufnehmen : Boolean = false
 
     // Liste zum speichern der Werte
     var werteListe : LinkedList<String>? = null
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,17 +91,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         progressBarPosXNegative = findViewById(R.id.progressBarPosXNegative)
         progressBarPosYNegative = findViewById(R.id.progressBarPosYNegative)
         progressBarPosZNegative = findViewById(R.id.progressBarPosZNegative)
-        progressBarPosGesamtNegativ = findViewById(R.id.progressBarPosGesamtNegativ)
 
         // Gesamtwertbereich
         gesamtWertTextView = findViewById(R.id.gesamtWertTextView)
 
-        // Dauer der Aufnahme
-        dauer = Toast.LENGTH_LONG
-
-        // Button zum Starten der Wertemessungsaufnahme
-        startButton = findViewById(R.id.startButton)
-        startButton.setOnClickListener {
+        (findViewById<Button>(R.id.startButton)).setOnClickListener {
             Log.d("OnClick", "starting OnClickListener")
             object : CountDownTimer(10000, 1000) {
                 override fun onTick(millisUntilFinished: Long) {
@@ -104,21 +108,22 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                 override fun onFinish() {
                     werteAufnehmen = false
                     saveAsCsv()
-                    var toast: Toast = Toast.makeText(context, "Werte gespeichert", dauer)
                     Log.d("filesaver", "file saved")
-                    toast.show()
+                    Toast.makeText(context, "Werte gespeichert", Toast.LENGTH_LONG).show()
                 }
             }.start()
         }
     }
 
-
     // start the sensor again when re-entering the app
     override fun onResume() {
         super.onResume()
+        if (achselSchnueffeler == null) {
+            achselSchnueffeler = AchselSchnueffeler(this)
+        }
         sensorManager?.registerListener(
-            this,
-            sensorManager!!.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
+            achselSchnueffeler,
+            sensorManager!!.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION),
             SensorManager.SENSOR_DELAY_NORMAL
         )
     }
@@ -126,53 +131,52 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     // to make sure that the sensor stops after closing the app
     override fun onPause() {
         super.onPause()
-        sensorManager?.unregisterListener(this)
+        if (achselSchnueffeler != null) {
+            sensorManager?.unregisterListener(achselSchnueffeler)
+            achselSchnueffeler = null
+        }
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-    }
-
-    override fun onSensorChanged(event: SensorEvent?) {
-
-        System.arraycopy(event!!.values, 0, beschleunigungsDaten, 0, 3)
-
-        var gesamtWert: Float = sqrt((beschleunigungsDaten[0] * beschleunigungsDaten[0] + beschleunigungsDaten[1] * beschleunigungsDaten[1] + beschleunigungsDaten[2] * beschleunigungsDaten[2]).toDouble())
-            .toFloat()
-
+    fun updateAccel(x: Float, y: Float, z: Float, t: Float) {
         if (werteAufnehmen) {
-            werteListe?.add("" + beschleunigungsDaten[0] + ";" + beschleunigungsDaten[1] + ";" + beschleunigungsDaten[2] + ";" + gesamtWert + "\n")
+            werteListe?.add("$x;$y;$z;$t\n")
         }
 
-        xValueTextView?.setText("%+.4f".format(beschleunigungsDaten[0]))
-        yValueTextView?.setText("%+.4f".format(beschleunigungsDaten[1]))
-        zValueTextView?.setText("%+.4f".format(beschleunigungsDaten[2]))
-        gesamtWertTextView?.setText("%+.4f".format(gesamtWert))
+        xValueTextView?.setText("%+.4f".format(x))
+        yValueTextView?.setText("%+.4f".format(y))
+        zValueTextView?.setText("%+.4f".format(z))
+        gesamtWertTextView?.setText("%+.4f".format(t))
 
-        if (beschleunigungsDaten[0] >= 0) {
-            progressBarPosX!!.progress = (beschleunigungsDaten[0] * 100 / 15).toInt()
+        if (x >= 0) {
+            progressBarPosX!!.progress = (x * 100 / 15).toInt()
+            progressBarPosXNegative!!.progress = 0
         } else {
-            progressBarPosXNegative!!.progress = (beschleunigungsDaten[0] * -100 / 15).toInt()
+            progressBarPosX!!.progress = 0
+            progressBarPosXNegative!!.progress = (x * -100 / 15).toInt()
         }
 
-        if (beschleunigungsDaten[1] >= 0) {
-            progressBarPosY!!.progress = (beschleunigungsDaten[1] * 100 / 15).toInt()
+        if (y >= 0) {
+            progressBarPosY!!.progress = (y * 100 / 15).toInt()
+            progressBarPosYNegative!!.progress = 0
         } else {
-            progressBarPosYNegative!!.progress = (beschleunigungsDaten[1] * -100 / 15).toInt()
+            progressBarPosY!!.progress = 0
+            progressBarPosYNegative!!.progress = (y * -100 / 15).toInt()
         }
 
-        if (beschleunigungsDaten[2] >= 0) {
-            progressBarPosZ!!.progress = (beschleunigungsDaten[2] * 100 / 15).toInt()
+        if (z >= 0) {
+            progressBarPosZ!!.progress = (z * 100 / 15).toInt()
+            progressBarPosZNegative!!.progress = 0
         } else {
-            progressBarPosZNegative!!.progress = (beschleunigungsDaten[2] * -100 / 15).toInt()
+            progressBarPosZ!!.progress = 0
+            progressBarPosZNegative!!.progress = (y * -100 / 15).toInt()
         }
 
-        if (gesamtWert >= 0) {
-            progressBarPosGesamt!!.progress = (gesamtWert * 100 / 15).toInt()
+        if (t >= 0) {
+            progressBarPosGesamt!!.progress = (t * 100 / 15).toInt()
         } else {
-            progressBarPosGesamtNegativ!!.progress = (gesamtWert * -100 / 15).toInt()
-        }
+            progressBarPosGesamt!!.progress = 0
 
-        // Log.d("values", "x: " + event!!.values[0] + " y: " + event!!.values[1] + " z: " + event!!.values[2])
+        }
     }
 
     fun saveAsCsv() {
@@ -183,7 +187,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
         try {
             fileOutPutStream = FileOutputStream(file)
-            fileOutPutStream.write(("X-Achse, Y-Achse, Z-Achse, Gesamt\n").toByteArray())
+            fileOutPutStream.write(("x;y;z;t\n").toByteArray())
             Log.d("directory", "" + Environment.DIRECTORY_DOWNLOADS)
 
             for (i in 0 until werteListe!!.size step 1) {
