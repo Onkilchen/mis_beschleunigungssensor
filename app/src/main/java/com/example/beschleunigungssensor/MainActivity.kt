@@ -164,8 +164,10 @@ class MainActivity : AppCompatActivity() {
         // Gesamtwertbereich
         gesamtWertTextView = findViewById(R.id.gesamtWertTextView)
 
+        val rate = (1000.0f/30.0f).toLong()
+
         (findViewById<Button>(R.id.capture)).setOnClickListener {
-            object : CountDownTimer(timeRange().toLong() * 1000, 100) {
+            object : CountDownTimer(timeRange().toLong() * 1000, rate) {
                 var orig : String? = null
                 override fun onTick(millisUntilFinished: Long) {
                     val button = (findViewById<Button>(R.id.capture))
