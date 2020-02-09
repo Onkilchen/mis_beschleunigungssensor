@@ -60,8 +60,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private var druckSchnueffeler : DruckSchnueffeler? = null
-    private var spietBuffer : Float = 0.0f
     private var achselBuffer : String? = null
+    private var spietBuffer : String? = null
+    private var presserBuffer : String? = null
 
     private val buttons = arrayOf(R.id.capture)
 
@@ -164,7 +165,7 @@ class MainActivity : AppCompatActivity() {
         gesamtWertTextView = findViewById(R.id.gesamtWertTextView)
 
         (findViewById<Button>(R.id.capture)).setOnClickListener {
-            object : CountDownTimer(timeRange().toLong() * 1000, 1000) {
+            object : CountDownTimer(timeRange().toLong() * 1000, 100) {
                 var orig : String? = null
                 override fun onTick(millisUntilFinished: Long) {
                     val button = (findViewById<Button>(R.id.capture))
@@ -177,6 +178,8 @@ class MainActivity : AppCompatActivity() {
 
                     button.setText("...$seconds...")
                     startCapture()
+
+                    werteListe!!.add("$millisUntilFinished;$achselBuffer;$spietBuffer;$presserBuffer\n")
                 }
 
                 override fun onFinish() {
@@ -336,7 +339,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun updateSpeed(speed: Float) {
-        spietBuffer = speed
+        spietBuffer = "%.5f".format(speed)
         speedValueTextView?.text = "%.0f km/h".format(speed)
 
         if (speed < 2.0) {
@@ -388,18 +391,12 @@ class MainActivity : AppCompatActivity() {
 
         }
 
-        achselBuffer = "$x;$y;$z;$t"
+        achselBuffer = "%.5f;%.5f;%.5f;%.5f".format(x, y, z, t)
     }
 
     fun updatePressure(p: Float) {
-        if (werteAufnehmen) {
-            if (achselBuffer != null) {
-                werteListe?.add("$achselBuffer;$spietBuffer;$p\n")
-                achselBuffer = null
-            }
-        }
-
         pressureValueTextView?.setText("%+.4f".format(p))
+        presserBuffer = "%.5f".format(p)
     }
 
     fun makeFilename(): String {
@@ -418,7 +415,7 @@ class MainActivity : AppCompatActivity() {
 
         try {
             fileOutPutStream = FileOutputStream(file)
-            fileOutPutStream.write(("x;y;z;t (m/s^2);v (km/h);p (mbar)\n").toByteArray())
+            fileOutPutStream.write(("m;x;y;z;t (m/s^2);v (km/h);p (mbar)\n").toByteArray())
 
             val s = werteListe!!.size
 
